@@ -1,0 +1,89 @@
+---
+title: "ADA Assignment - Group 9"
+author: "2230308, 2230472, 2280933, 2288034, 2221266, 2281822, 2286979"
+date: "2023-02-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries, message = F, echo = F}
+
+# List of all packages that need to be used
+
+package_list <- c("tidyverse", "readr", "dplyr", "readxl", "psych", "psychTools",
+                  "Hmisc", "FSelector", "CatEncoders", "caTools", "openxlsx")
+
+# Install them if not installed
+
+installed_packages <- package_list %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(package_list[!installed_packages])
+}
+
+# Load the packages 
+
+invisible(lapply(package_list, library, character.only = TRUE))
+
+
+```
+
+#### Reading the data
+
+```{r reading-data, message = F}
+
+loan_data <- read_excel("/cloud/project/Assignment/loan_data_ADA_assignment.xlsx")
+
+```
+
+#### Data Cleaning
+
+```{r removing-variables}
+
+data <- loan_data
+
+
+# checking structure and summary of the data
+
+# str(data)
+# summary(data)
+
+# Removing some attributes
+
+data <- data %>% select(-c(member_id, id, next_pymnt_d, mths_since_last_major_derog, mths_since_last_record, mths_since_last_delinq, desc, grade, emp_title, issue_d, desc, title, zip_code, addr_state, earliest_cr_line, last_pymnt_d, next_pymnt_d, last_credit_pull_d, mths_since_last_record, mths_since_last_major_derog, mths_since_last_delinq, policy_code, acc_now_delinq, pymnt_plan, home_ownership, verification_status, loan_status, purpose))
+
+# colSums(is.na(data))
+
+# removing null values
+data <- na.omit(data)
+
+# encoding subgrade and loan_is_bad
+
+labs = LabelEncoder.fit(data$sub_grade)
+data$sub_grade = transform(labs, data$sub_grade)
+
+data$loan_is_bad <- as.integer(data$loan_is_bad)
+
+# checking information gain 
+
+IG <- information.gain(loan_is_bad ~., data = data)
+IG$attr_importance <- round(IG$attr_importance, digits = 3)
+IG %>% arrange(desc(IG$attr_importance))
+
+# removing any variables where information gain < 0.01
+
+data <- data %>% select(-c(total_acc, total_rec_late_fee, total_credit_rv, delinq_2yrs, tot_cur_bal, term, inq_last_6mths, revol_util, open_acc, dti, emp_length, collections_12_mths_ex_med, tot_coll_amt))
+
+# writing final xlsx file 
+
+write.xlsx(data, "cleaned_data.xlsx")
+
+```
+
+
+
+
+

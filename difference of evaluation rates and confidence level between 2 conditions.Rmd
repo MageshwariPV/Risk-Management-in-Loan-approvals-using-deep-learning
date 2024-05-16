@@ -1,0 +1,300 @@
+---
+title: "ADA analysis"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-03-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+We will focus on the data from the experiment task. 
+
+## Variables' Description
+
+- player_code: unique ID for each participant (in our case, each participant group)
+- round: the round number in the experiment, 1-10
+- trmt_accur: one of the two main experiment factors. High Accuracy: participants worked with 80% accuracy AI, Low Accuracy:  participants worked with 60% accuracy AI, Baseline: participants worked on their own
+
+- typeI: number of type I errors each participant made in each round (initial/final stage)
+- typeII: number of type II errors each participant made in each round (initial/final stage)
+- ai_typeI: number of type I errors the AI (computer model) made in each round
+- ai_typeII: number of type II errors the AI (computer model) made in each round
+
+- confidence_*_total : total confidence ratings each participant gave
+- confidence_*_avg : average confidence ratings each participant gave[total confidence divided by number of completed decisions]
+
+
+```{r}
+## Load Data
+df <- read.csv("type_error.csv",
+  header = T,
+  stringsAsFactors = FALSE)
+df <- na.omit(df)
+
+summary(df)
+
+## Compute participant-level metrics (aggregated over 10 rounds)
+## Let's first focus on Type I & Type II errors
+
+library(dplyr)
+
+perf_msrs <- c(
+  "typeI", "typeI_rate", 
+  "typeII", "typeII_rate", 
+  "ai_typeI", "aitypeI_rate", 
+  "ai_typeII", "aitypeII_rate",
+  "arg_confidence_level")
+
+library("summarytools") 
+
+## Summary Stats overall - all conditions
+df_describe <- dfSummary(df[perf_msrs])
+
+filename <- "descriptives_data.html"
+view(df_describe, file = filename)
+
+## Summary Stats - each condition
+df_describe_conds <- dfSummary(df_describe)
+
+name <- "descriptives_data_conds.html"
+
+view(df_describe_conds, file = name) # should run in console if output missing conditions
+
+```
+
+```{r}
+### can also use hist() to look at distribution shape of your DVs for each condition
+RA <- df[df$treatment== "RA", ]
+
+Baseline <- df[df$treatment == "Baseline", ]
+
+hist(RA$typeI_rate)
+hist(Baseline$typeI_rate)
+
+```
+
+```{r}
+## Comparing between 2 conditions
+## Kruskal Wallis Test 
+## kruskal.test(DV ~ treatment_factor, data = data)
+
+kruskal.test(
+  typeI_rate ~ treatment,
+  data = df
+      )
+```
+```{r}
+#Mann-Whitney U testing 
+control_data <- df$typeI_rate[df$treatment == "Baseline"]
+
+# Subset the data for the treatment group
+treatment_data <- df$typeI_rate[df$treatment == "RA"]
+
+# Perform the Mann-Whitney U test
+result <- wilcox.test(control_data, treatment_data)
+
+```
+
+```{r}
+## Comparing between 2 conditions
+## ANOVA
+## anova <- aov(DV ~ treatment_factor, data = data)
+## summary(anova)
+
+test <- aov(
+   typeI_rate ~ treatment,
+  data = df)
+summary(test)
+#结果没有显著不同，也就是两条件之间无显著差距
+```
+
+```{r}
+
+## Visualization
+
+library(ggplot2)
+library(ggpubr) ## a very useful package that provides some easy-to-use functions for creating and customizing 'ggplot2'-based publication ready plots.
+
+df$treatment <- as.factor(df$treatment)
+
+barplot <- ggbarplot( ## ggbarplot() requires "ggpubr" package
+  data = df, 
+  x = "treatment", xlab = "Condition",
+  y = "typeI_rate", 
+  ylab = "Type I Rate",
+  fill = "treatment", ## color for each condition
+  add = "mean_se", ## includes standard error bar
+  label = TRUE, ## includes summary stats on chart
+  label.pos = "in", 
+  lab.nb.digits = 2) + ## round displayed stats to 2 decimal places
+    stat_compare_means(method = "kruskal.test") + ## displays kruskal wallis results on chart 
+    theme(text = element_text(size = 12, face = "bold"),
+          axis.text=element_text(size = 12),
+          legend.position = "none")
+
+ggsave(plot = barplot, width = 10, height = 8, dpi = 300,
+           filename =  "barplot_typeI_rate.jpeg")
+```
+
+Now start the analysis of TypeII_rate
+
+```{r}
+### can also use hist() to look at distribution shape of your DVs for each condition
+hist(RA$typeII_rate)
+hist(Baseline$typeII_rate)
+
+```
+
+```{r}
+## Comparing between 2 conditions
+## Kruskal Wallis Test 
+## kruskal.test(DV ~ treatment_factor, data = data)
+
+kruskal.test(
+  typeII_rate ~ treatment,
+  data = df
+      )
+```
+```{r}
+#Mann-Whitney U testing 
+control_data2 <- df$typeII_rate[df$treatment == "Baseline"]
+
+# Subset the data for the treatment group
+treatment_data2 <- df$typeII_rate[df$treatment == "RA"]
+
+# Perform the Mann-Whitney U test
+result2 <- wilcox.test(control_data2, treatment_data2)
+
+```
+
+```{r}
+## Comparing between 2 conditions
+## ANOVA
+## anova <- aov(DV ~ treatment_factor, data = data)
+## summary(anova)
+
+test2 <- aov(
+   typeII_rate ~ treatment,
+  data = df)
+summary(test2)
+#结果没有显著不同，也就是两条件之间无显著差距
+```
+
+```{r}
+
+## Visualization
+
+barplot2 <- ggbarplot( ## ggbarplot() requires "ggpubr" package
+  data = df, 
+  x = "treatment", xlab = "Condition",
+  y = "typeII_rate", 
+  ylab = "Type II Rate",
+  fill = "treatment", ## color for each condition
+  add = "mean_se", ## includes standard error bar
+  label = TRUE, ## includes summary stats on chart
+  label.pos = "in", 
+  lab.nb.digits = 2) + ## round displayed stats to 2 decimal places
+    stat_compare_means(method = "kruskal.test") + ## displays kruskal wallis results on chart 
+    theme(text = element_text(size = 12, face = "bold"),
+          axis.text=element_text(size = 12),
+          legend.position = "none")
+
+ggsave(plot = barplot2, width = 10, height = 8, dpi = 300,
+           filename =  "barplot_typeII_rate.jpeg")
+```
+
+Now we move to the analysis of average confidence level between RA and Baseline
+
+```{r}
+### can also use hist() to look at distribution shape of average confidence level for each condition
+
+hist(RA$arg_confidence_level)
+hist(Baseline$arg_confidence_level)
+
+```
+
+```{r}
+## Comparing between 2 conditions
+## Kruskal Wallis Test 
+## kruskal.test(DV ~ treatment_factor, data = data)
+
+kruskal.test(
+  arg_confidence_level ~ treatment,
+  data = df
+      )
+```
+```{r}
+#Mann-Whitney U testing 
+control_data3 <- df$arg_confidence_level[df$treatment == "Baseline"]
+
+# Subset the data for the treatment group
+treatment_data3 <- df$arg_confidence_level[df$treatment == "RA"]
+
+# Perform the Mann-Whitney U test
+result3 <- wilcox.test(control_data3, treatment_data3)
+
+```
+
+```{r}
+## Comparing between 2 conditions
+## ANOVA
+## anova <- aov(DV ~ treatment_factor, data = data)
+## summary(anova)
+
+test3 <- aov(
+   arg_confidence_level ~ treatment,
+  data = df)
+summary(test3)
+#结果没有显著不同，也就是两条件之间无显著差距
+```
+
+```{r}
+
+## Visualization
+
+barplot3 <- ggbarplot( ## ggbarplot() requires "ggpubr" package
+  data = df, 
+  x = "treatment", xlab = "Condition",
+  y = "arg_confidence_level", 
+  ylab = "average confidence level",
+  fill = "treatment", ## color for each condition
+  add = "mean_se", ## includes standard error bar
+  label = TRUE, ## includes summary stats on chart
+  label.pos = "in", 
+  lab.nb.digits = 2) + ## round displayed stats to 2 decimal places
+    stat_compare_means(method = "kruskal.test") + ## displays kruskal wallis results on chart 
+    theme(text = element_text(size = 12, face = "bold"),
+          axis.text=element_text(size = 12),
+          legend.position = "none")
+
+ggsave(plot = barplot3, width = 10, height = 8, dpi = 300,
+           filename =  "barplot_arg_confidence_level.jpeg")
+```
+
+```{r}
+df <- read.csv("Result.csv",
+header = T,
+stringsAsFactors = FALSE)
+
+## Summary Statistics
+
+df_descr <- dfSummary(df) ## requires "summarytools" package
+filename <- "descriptives.html"
+view(df_descr, file = filename)
+```
+
+```{r}
+## Comparing between 2 conditions
+## Kruskal Wallis Test
+## kruskal.test(DV ~ treatment_factor, data = data)
+
+kruskal.test(
+AllLoan ~ Condition,
+data = df
+)
+```

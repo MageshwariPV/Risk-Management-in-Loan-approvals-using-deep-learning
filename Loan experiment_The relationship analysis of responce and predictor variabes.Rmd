@@ -1,0 +1,106 @@
+---
+title: "ADA_experiment"
+author: "Emily"
+date: '2023-03-10'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## Load Data
+library(tidyverse)
+library(summarytools)
+# install.packages("readxl")
+library(readxl)
+data <- read_excel("/Users/emilychen/Desktop/WBS/Advanced Data Analysis/group_9/Experiment_data.xlsx", sheet = 3)
+```
+
+```{r}
+# calculate the mean of rist tolerance
+names(data)[names(data) == "Risk Tolerance 1:"] <- "RiskTolerance1"
+names(data)[names(data) == "Risk Tolerance 2:"] <- "RiskTolerance2"
+names(data)[names(data) == "Risk Tolerance 3:"] <- "RiskTolerance3"
+names(data)[names(data) == "Simple Q3_1"] <- "math_skills"
+names(data)[names(data) == "Simple Q4_1"] <- "financial_sense"
+names(data)[names(data) == "Simple Q5_1"] <- "financial_decisions"
+
+data <- data %>%  rowwise() %>%
+  mutate(mean_risk = mean(c_across(RiskTolerance1:RiskTolerance3)))
+```
+
+```{r}
+names(data)[names(data) == "Simple Q1"] <- "age"
+age_risk <- data %>% group_by(age) %>% summarise(mean = mean(accuracy))
+knitr::kable(age_risk, caption = "age_risk")
+```
+
+```{r}
+names(data)[names(data) == 'Is your background related to finance or mathematics?'] <- "background"
+# Create a new column 'new_x' with the updated values
+# data$background <- ifelse(data$background == 'Yes', 0, 1)
+```
+# sex
+```{r}
+names(data)[names(data) == "Post Q1"] <- "sex"
+data_sex <- filter(data, sex == 'Female' | sex == 'Male')
+con_sex_k<- kruskal.test(average_confidence_level ~ sex,data = data_sex)
+con_sex_k
+accu_sex_k<- kruskal.test(accuracy ~ sex,data = data_sex)
+accu_sex_k
+```
+#background
+```{r}
+con_backgrond_k <- kruskal.test(average_confidence_level ~ background, # ttest for outcomes 
+         data = data)
+con_backgrond_k
+accu_backgrond_k <- kruskal.test(accuracy ~ background, # ttest for outcomes 
+         data = data)
+accu_backgrond_k
+```
+# education level
+```{r}
+names(data)[names(data) == "Post Q2"] <- "education"
+con_education_k <- kruskal.test(average_confidence_level ~ education,data = data)
+con_education_k
+accu_education_k <- kruskal.test(accuracy ~ education, data = data)
+accu_education_k
+```
+#age
+```{r}
+con_age_k <- kruskal.test(average_confidence_level ~ age, data = data)
+con_age_k
+accu_age_k <- kruskal.test(accuracy ~ age,data = data)
+accu_age_k
+```
+
+```{r}
+con_fd_lm <- lm(average_confidence_level ~ financial_decisions,data = data)
+summary(con_fd_lm)
+con_fs_lm <- lm(average_confidence_level ~ financial_sense, data = data)
+summary(con_fs_lm)
+con_math_lm <- lm(average_confidence_level ~ math_skills, data = data)
+summary(con_math_lm)
+con_risk_lm <- lm(average_confidence_level ~ mean_risk, data = data)
+summary(con_risk_lm)
+```
+
+```{r}
+acc_fd_lm <- lm(accuracy ~ financial_decisions,data = data)
+summary(acc_fd_lm)
+acc_fs_lm <- lm(accuracy ~ financial_sense,data = data)
+summary(acc_fs_lm)
+acc_math_lm <- lm(accuracy ~ math_skills,data = data) 
+summary(acc_math_lm)
+acc_risk_lm <- lm(accuracy ~ mean_risk,data = data) 
+summary(acc_risk_lm)
+
+m_acc_math_fs_lm <- lm(accuracy ~ math_skills*financial_sense,data = data)
+summary(m_acc_math_fs_lm) 
+m_acc_all_lm <- lm(accuracy ~ math_skills+financial_sense,data = data)
+summary(m_acc_all_lm)
+```
+
+
